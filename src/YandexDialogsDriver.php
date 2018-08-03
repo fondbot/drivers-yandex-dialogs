@@ -5,15 +5,19 @@ declare(strict_types=1);
 namespace FondBot\Drivers\YandexDialogs;
 
 use FondBot\Channels\Chat;
-use FondBot\Channels\Driver;
 use FondBot\Channels\User;
+use FondBot\Channels\Driver;
 use FondBot\Contracts\Event;
+use Illuminate\Http\Request;
 use FondBot\Contracts\Template;
 use FondBot\Templates\Attachment;
-use Illuminate\Http\Request;
+use FondBot\Events\MessageReceived;
+use FondBot\Contracts\Channels\WebhookVerification;
 
-class YandexDialogsDriver extends Driver
+class YandexDialogsDriver extends Driver implements WebhookVerification
 {
+    public const VERSION = '1.0';
+
     /**
      * Get gateway display name.
      *
@@ -40,7 +44,7 @@ class YandexDialogsDriver extends Driver
      */
     public function getDefaultParameters(): array
     {
-        // TODO: Implement getDefaultParameters() method.
+        return [];
     }
 
     /**
@@ -50,7 +54,7 @@ class YandexDialogsDriver extends Driver
      */
     public function getClient()
     {
-        // TODO: Implement getClient() method.
+        return new YandexDialogsClient();
     }
 
     /**
@@ -62,7 +66,12 @@ class YandexDialogsDriver extends Driver
      */
     public function createEvent(Request $request): Event
     {
-        // TODO: Implement createEvent() method.
+        $chat = Chat::make($request->input('session.session_id'))->data([
+            'session' => $request->input('session'),
+        ]);
+        $user = User::make($request->input('session.user_id'));
+
+        return new MessageReceived($chat, $user, $request->input('request.command', ''));
     }
 
     /**
@@ -75,7 +84,16 @@ class YandexDialogsDriver extends Driver
      */
     public function sendMessage(Chat $chat, User $recipient, string $text, Template $template = null): void
     {
-        // TODO: Implement sendMessage() method.
+        response([
+            'response' => [
+                'text' => $text,
+                'tts' => $text,
+                'end_session' => false,
+            ],
+            'session' => $chat->getData('session'),
+            'version' => self::VERSION,
+        ])
+            ->send();
     }
 
     /**
@@ -101,5 +119,21 @@ class YandexDialogsDriver extends Driver
     public function sendRequest(Chat $chat, User $recipient, string $endpoint, array $parameters = []): void
     {
         // TODO: Implement sendRequest() method.
+    }
+
+    public function isVerificationRequest(Request $request): bool
+    {
+        return $request->input('request.command') === 'test';
+    }
+
+    public function verifyWebhook(Request $request)
+    {
+        return [
+            'version' => self::VERSION,
+            'session' => $request->input('session'),
+            'response' => [
+                'text' => 'FondBot',
+            ],
+        ];
     }
 }

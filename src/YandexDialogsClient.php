@@ -6,5 +6,4 @@ namespace FondBot\Drivers\YandexDialogs;
 
 class YandexDialogsClient
 {
-
 }
