@@ -18,6 +18,8 @@ class YandexDialogsDriver extends Driver implements WebhookVerification
 {
     public const VERSION = '1.0';
 
+    private $session;
+
     /**
      * Get gateway display name.
      *
@@ -66,10 +68,10 @@ class YandexDialogsDriver extends Driver implements WebhookVerification
      */
     public function createEvent(Request $request): Event
     {
-        $chat = Chat::make($request->input('session.session_id'))->data([
-            'session' => $request->input('session'),
-        ]);
-        $user = User::make($request->input('session.user_id'));
+        $this->session = $request->input('session');
+
+        $chat = new Chat($request->input('session.session_id'));
+        $user = new User($request->input('session.user_id'));
 
         return new MessageReceived($chat, $user, $request->input('request.command', ''));
     }
@@ -90,7 +92,7 @@ class YandexDialogsDriver extends Driver implements WebhookVerification
                 'tts' => $text,
                 'end_session' => false,
             ],
-            'session' => $chat->getData('session'),
+            'session' => $this->session,
             'version' => self::VERSION,
         ])
             ->send();
